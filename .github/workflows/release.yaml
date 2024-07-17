@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.vscode/**'
+      - '.idea/**'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  ama3-contracts-validate:
+    name: Run ama3-contracts release
+    secrets: inherit
+    uses: ./.github/workflows/ama3-contracts-ci.yaml
+
+  ama3-contracts-release:
+    name: Run ama3-contracts release
+    secrets: inherit
+    uses: ./.github/workflows/ama3-contracts-cd.yaml
+    needs: ama3-contracts-validate
+
+  ama3-frontend-validate:
+    name: Run ama3-frontend release
+    secrets: inherit
+    uses: ./.github/workflows/ama3-frontend-ci.yaml
+
+  ama3-frontend-release:
+    name: Run ama3-frontend release
+    secrets: inherit
+    uses: ./.github/workflows/ama3-frontend-cd.yaml
+    needs: ama3-frontend-validate
