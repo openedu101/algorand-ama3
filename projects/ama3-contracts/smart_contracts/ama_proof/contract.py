@@ -1,6 +1,7 @@
-from algopy import ARC4Contract, Account, Asset, String, Txn, UInt64, subroutine
 import algopy
+from algopy import Account, ARC4Contract, Asset, String, Txn, UInt64, subroutine
 from algopy.arc4 import abimethod
+
 
 class AmaProof(ARC4Contract):
     # Function -> ProofOfViewer (time, 50) -> whitelist (address, nft)
@@ -9,8 +10,9 @@ class AmaProof(ARC4Contract):
 
     def __init__(self) -> None:
         self.max_viewer = UInt64(30)
-        self.asset_url = String("ipfs://...0xla")
         self.total_viewer = UInt64(0)
+        self.asset_url = String("ipfs://...0xla")
+        self.asset_id = UInt64(0)
         self.winner = Account()
 
     # Todo -> Who is winner
@@ -31,7 +33,7 @@ class AmaProof(ARC4Contract):
         # Luu tru thong tin nguoi tham gia
         # mapping(address -> asset.id)
         # address -> value
-        _id, already_exists = algopy.op.Box.get(Txn.sender.bytes) # address -> bytes
+        _id, already_exists = algopy.op.Box.get(Txn.sender.bytes)  # address -> bytes
         # true -> not true -> false -> error
         assert not already_exists, "Already claim POV"
 
@@ -54,27 +56,31 @@ class AmaProof(ARC4Contract):
                 url=self.asset_url,
                 manager=claimer,
                 total=UInt64(1),
-                decimals=0
-            ).submit().created_asset # asset.id
+                decimals=0,
+            )
+            .submit()
+            .created_asset  # asset.id
         )
+
     # <<<-- Internal:: END    <<<---  Function Mint NFT
 
     @abimethod
     def get_pov_id(self) -> UInt64:
-        # get -> op.Box.get(sender) -> asset.id
-        pass
-        return UInt64(0)
+        pov_id, exits = algopy.op.Box.get(Txn.sender.bytes)
+        assert exits, "Pov not found"
+        return algopy.op.btoi(pov_id)
 
     @abimethod
     def claim_pov_token(self) -> None:
-        # tao NFT -> AssetConfig -> asset - Reward.
-        # winner == Txn.sender -> NFT
-        # require
-        pass
+        assert self.winner == Txn.sender, "You can't claim. Only winner can claim"
+        assert self.asset_id == 0, "Reward already claimed"
+        self.asset_id = self.get_pov_id()
 
     @abimethod
     def send_pov_token(self) -> None:
-        # itxn.AssetTransfer(
-        # asset_id, from, to, amount
-        # )
-        pass
+        assert self.asset_id != 0, "Reward not yet claimed"
+        algopy.itxn.AssetTransfer(
+            xfer_asset=self.asset_id,
+            asset_receiver=self.winner,
+            asset_amount=UInt64(1),
+        )
