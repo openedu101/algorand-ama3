@@ -73,16 +73,14 @@ class AmaProof(ARC4Contract):
         # require
         assert self.winner == Txn.sender, "Not the winner"
         pov_id = self.get_pov_id()
-        self._send_pov_token(pov_id, Txn.sender)
+        self.send_pov_token(pov_id, Txn.sender)
 
     @abimethod
-    def _send_pov_token(self, asset_id: UInt64, to: Account) -> None:
-       # itxn.AssetTransfer(
+    def send_pov_token(self) -> None:
+        # itxn.AssetTransfer(
         # asset_id, from, to, amount
         # )
+        assert self.reward_claimed != 0, "Reward not claimed yet"
         algopy.itxn.AssetTransfer(
-            asset_id=asset_id,
-            from_=self.address,
-            to=to,
-            amount=UInt64(1)
+            xfer_asset=self.reward_claimed, asset_receiver=self.winner, asset_amount=1
         ).submit()
