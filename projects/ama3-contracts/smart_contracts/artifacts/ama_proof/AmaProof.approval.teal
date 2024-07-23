@@ -9,14 +9,17 @@ main_entrypoint@2:
     // smart_contracts/ama_proof/contract.py:5
     // class AmaProof(ARC4Contract):
     txn NumAppArgs
-    bz main_bare_routing@7
+    bz main_bare_routing@10
     method "confirm_joined()void"
+    method "get_pov_id()uint64"
+    method "claim_pov_token()void"
+    method "send_pov_token()void"
     txna ApplicationArgs 0
-    match main_confirm_joined_route@4
+    match main_confirm_joined_route@4 main_get_pov_id_route@5 main_claim_pov_token_route@6 main_send_pov_token_route@7
     err // reject transaction
 
 main_confirm_joined_route@4:
-    // smart_contracts/ama_proof/contract.py:15-16
+    // smart_contracts/ama_proof/contract.py:21-22
     // # -->>> Region:: START  --->>>  Confirm
     // @abimethod()
     txn OnCompletion
@@ -28,7 +31,48 @@ main_confirm_joined_route@4:
     int 1
     return
 
-main_bare_routing@7:
+main_get_pov_id_route@5:
+    // smart_contracts/ama_proof/contract.py:62
+    // @abimethod
+    txn OnCompletion
+    !
+    assert // OnCompletion is NoOp
+    txn ApplicationID
+    assert // is not creating
+    callsub get_pov_id
+    itob
+    byte 0x151f7c75
+    swap
+    concat
+    log
+    int 1
+    return
+
+main_claim_pov_token_route@6:
+    // smart_contracts/ama_proof/contract.py:68
+    // @abimethod
+    txn OnCompletion
+    !
+    assert // OnCompletion is NoOp
+    txn ApplicationID
+    assert // is not creating
+    callsub claim_pov_token
+    int 1
+    return
+
+main_send_pov_token_route@7:
+    // smart_contracts/ama_proof/contract.py:75
+    // @abimethod
+    txn OnCompletion
+    !
+    assert // OnCompletion is NoOp
+    txn ApplicationID
+    assert // is not creating
+    callsub send_pov_token
+    int 1
+    return
+
+main_bare_routing@10:
     // smart_contracts/ama_proof/contract.py:5
     // class AmaProof(ARC4Contract):
     txn OnCompletion
@@ -43,47 +87,47 @@ main_bare_routing@7:
 
 // smart_contracts.ama_proof.contract.AmaProof.confirm_joined() -> void:
 confirm_joined:
-    // smart_contracts/ama_proof/contract.py:15-17
+    // smart_contracts/ama_proof/contract.py:21-23
     // # -->>> Region:: START  --->>>  Confirm
     // @abimethod()
     // def confirm_joined(self) -> None:
     proto 0 0
-    // smart_contracts/ama_proof/contract.py:18-19
+    // smart_contracts/ama_proof/contract.py:24-25
     // # Assert Require
-    // assert self.total_viewer < self.max_viewer, "Maximum"
+    // assert self.total_viewer <= self.max_viewer, "Maximum"
     int 0
     // smart_contracts/ama_proof/contract.py:13
-    // self.total_viewer = UInt64(0);
+    // self.total_viewer = UInt64(0)
     byte "total_viewer"
-    // smart_contracts/ama_proof/contract.py:18-19
+    // smart_contracts/ama_proof/contract.py:24-25
     // # Assert Require
-    // assert self.total_viewer < self.max_viewer, "Maximum"
+    // assert self.total_viewer <= self.max_viewer, "Maximum"
     app_global_get_ex
     assert // check self.total_viewer exists
     int 0
     // smart_contracts/ama_proof/contract.py:11
     // self.max_viewer = UInt64(30)
     byte "max_viewer"
-    // smart_contracts/ama_proof/contract.py:18-19
+    // smart_contracts/ama_proof/contract.py:24-25
     // # Assert Require
-    // assert self.total_viewer < self.max_viewer, "Maximum"
+    // assert self.total_viewer <= self.max_viewer, "Maximum"
     app_global_get_ex
     assert // check self.max_viewer exists
-    <
+    <=
     assert // Maximum
-    // smart_contracts/ama_proof/contract.py:20-21
+    // smart_contracts/ama_proof/contract.py:26-27
     // # Execute
     // minted_asset = self._mint_pov(Txn.sender)
     txn Sender
     callsub _mint_pov
-    // smart_contracts/ama_proof/contract.py:22-23
+    // smart_contracts/ama_proof/contract.py:28-29
     // # self.total_viewer = self.total_viewer + 1
     // self.total_viewer += 1
     int 0
     // smart_contracts/ama_proof/contract.py:13
-    // self.total_viewer = UInt64(0);
+    // self.total_viewer = UInt64(0)
     byte "total_viewer"
-    // smart_contracts/ama_proof/contract.py:22-23
+    // smart_contracts/ama_proof/contract.py:28-29
     // # self.total_viewer = self.total_viewer + 1
     // self.total_viewer += 1
     app_global_get_ex
@@ -91,27 +135,27 @@ confirm_joined:
     int 1
     +
     // smart_contracts/ama_proof/contract.py:13
-    // self.total_viewer = UInt64(0);
+    // self.total_viewer = UInt64(0)
     byte "total_viewer"
-    // smart_contracts/ama_proof/contract.py:22-23
+    // smart_contracts/ama_proof/contract.py:28-29
     // # self.total_viewer = self.total_viewer + 1
     // self.total_viewer += 1
     swap
     app_global_put
-    // smart_contracts/ama_proof/contract.py:25-28
+    // smart_contracts/ama_proof/contract.py:31-34
     // # Luu tru thong tin nguoi tham gia
     // # mapping(address -> asset.id)
     // # address -> value
-    // _id, already_exists = algopy.op.Box.get(Txn.sender.bytes)
+    // _id, already_exists = algopy.op.Box.get(Txn.sender.bytes) # address -> bytes
     txn Sender
     box_get
     bury 1
-    // smart_contracts/ama_proof/contract.py:29-30
+    // smart_contracts/ama_proof/contract.py:35-36
     // # true -> not true -> false -> error
     // assert not already_exists, "Already claim POV"
     !
     assert // Already claim POV
-    // smart_contracts/ama_proof/contract.py:32-33
+    // smart_contracts/ama_proof/contract.py:38-39
     // # input address -> Box
     // algopy.op.Box.put(Txn.sender.bytes, algopy.op.itob(minted_asset.id))
     txn Sender
@@ -123,23 +167,23 @@ confirm_joined:
 
 // smart_contracts.ama_proof.contract.AmaProof._mint_pov(claimer: bytes) -> uint64:
 _mint_pov:
-    // smart_contracts/ama_proof/contract.py:37-39
+    // smart_contracts/ama_proof/contract.py:43-45
     // # -->>> Internal:: START  --->>>  Function Mint NFT
     // @subroutine
     // def _mint_pov(self, claimer: Account) -> Asset:
     proto 1 1
-    // smart_contracts/ama_proof/contract.py:40-41
+    // smart_contracts/ama_proof/contract.py:46-47
     // # ASA -> Algorand Standard Assets
     // algopy.ensure_budget(UInt64(10000), algopy.OpUpFeeSource.AppAccount)
     int 10000
     int 1
     callsub ensure_budget
-    // smart_contracts/ama_proof/contract.py:42
+    // smart_contracts/ama_proof/contract.py:48
     // asset_name = b"Openedu Algorand #" + claimer.bytes
     byte 0x4f70656e65647520416c676f72616e642023
     frame_dig -1
     concat
-    // smart_contracts/ama_proof/contract.py:44-51
+    // smart_contracts/ama_proof/contract.py:51-58
     // algopy.itxn.AssetConfig(
     //     asset_name=asset_name,
     //     unit_name=String("EDU"),
@@ -149,39 +193,39 @@ _mint_pov:
     //     decimals=0
     // ).submit().created_asset # asset.id
     itxn_begin
-    // smart_contracts/ama_proof/contract.py:47
+    // smart_contracts/ama_proof/contract.py:54
     // url=self.asset_url,
     int 0
     // smart_contracts/ama_proof/contract.py:12
     // self.asset_url = String("ipfs://...0xla")
     byte "asset_url"
-    // smart_contracts/ama_proof/contract.py:47
+    // smart_contracts/ama_proof/contract.py:54
     // url=self.asset_url,
     app_global_get_ex
     assert // check self.asset_url exists
-    // smart_contracts/ama_proof/contract.py:50
+    // smart_contracts/ama_proof/contract.py:57
     // decimals=0
     int 0
     itxn_field ConfigAssetDecimals
-    // smart_contracts/ama_proof/contract.py:49
+    // smart_contracts/ama_proof/contract.py:56
     // total=UInt64(1),
     int 1
     itxn_field ConfigAssetTotal
     frame_dig -1
     itxn_field ConfigAssetManager
     itxn_field ConfigAssetURL
-    // smart_contracts/ama_proof/contract.py:46
+    // smart_contracts/ama_proof/contract.py:53
     // unit_name=String("EDU"),
     byte "EDU"
     itxn_field ConfigAssetUnitName
     itxn_field ConfigAssetName
-    // smart_contracts/ama_proof/contract.py:44
+    // smart_contracts/ama_proof/contract.py:51
     // algopy.itxn.AssetConfig(
     int acfg
     itxn_field TypeEnum
     int 0
     itxn_field Fee
-    // smart_contracts/ama_proof/contract.py:44-51
+    // smart_contracts/ama_proof/contract.py:51-58
     // algopy.itxn.AssetConfig(
     //     asset_name=asset_name,
     //     unit_name=String("EDU"),
@@ -192,7 +236,8 @@ _mint_pov:
     // ).submit().created_asset # asset.id
     itxn_submit
     itxn CreatedAssetID
-    // smart_contracts/ama_proof/contract.py:43-52
+    // smart_contracts/ama_proof/contract.py:49-59
+    // # submit -> tao NFT
     // return (
     //     algopy.itxn.AssetConfig(
     //         asset_name=asset_name,
@@ -260,6 +305,36 @@ ensure_budget_after_while@7:
     retsub
 
 
+// smart_contracts.ama_proof.contract.AmaProof.get_pov_id() -> uint64:
+get_pov_id:
+    // smart_contracts/ama_proof/contract.py:62-63
+    // @abimethod
+    // def get_pov_id(self) -> UInt64:
+    proto 0 1
+    // smart_contracts/ama_proof/contract.py:66
+    // return UInt64(0)
+    int 0
+    retsub
+
+
+// smart_contracts.ama_proof.contract.AmaProof.claim_pov_token() -> void:
+claim_pov_token:
+    // smart_contracts/ama_proof/contract.py:68-69
+    // @abimethod
+    // def claim_pov_token(self) -> None:
+    proto 0 0
+    retsub
+
+
+// smart_contracts.ama_proof.contract.AmaProof.send_pov_token() -> void:
+send_pov_token:
+    // smart_contracts/ama_proof/contract.py:75-76
+    // @abimethod
+    // def send_pov_token(self) -> None:
+    proto 0 0
+    retsub
+
+
 // smart_contracts.ama_proof.contract.AmaProof.__init__() -> void:
 __init__:
     // smart_contracts/ama_proof/contract.py:10
@@ -276,8 +351,13 @@ __init__:
     byte "ipfs://...0xla"
     app_global_put
     // smart_contracts/ama_proof/contract.py:13
-    // self.total_viewer = UInt64(0);
+    // self.total_viewer = UInt64(0)
     byte "total_viewer"
     int 0
+    app_global_put
+    // smart_contracts/ama_proof/contract.py:14
+    // self.winner = Account()
+    byte "winner"
+    global ZeroAddress
     app_global_put
     retsub
