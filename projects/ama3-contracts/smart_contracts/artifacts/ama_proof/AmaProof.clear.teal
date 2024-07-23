@@ -1,7 +1,0 @@
-#pragma version 10
-
-smart_contracts.ama_proof.contract.AmaProof.clear_state_program:
-    // smart_contracts/ama_proof/contract.py:5
-    // class AmaProof(ARC4Contract):
-    int 1
-    return
