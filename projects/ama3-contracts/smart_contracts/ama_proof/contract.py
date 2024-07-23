@@ -1,4 +1,4 @@
-from algopy import ARC4Contract, Account, Asset, String, Txn, UInt64, subroutine
+from algopy import ARC4Contract, Account, Asset, String, Txn, UInt64, subroutine, itxn
 import algopy
 from algopy.arc4 import abimethod
 
@@ -12,6 +12,7 @@ class AmaProof(ARC4Contract):
         self.asset_url = String("ipfs://...0xla")
         self.total_viewer = UInt64(0)
         self.winner = Account()
+        self.pov_id = UInt64(0)
 
     # Todo -> Who is winner
     # ko dung vao
@@ -22,7 +23,7 @@ class AmaProof(ARC4Contract):
     @abimethod()
     def confirm_joined(self) -> None:
         # Assert Require
-        assert self.total_viewer < self.max_viewer, "Maximum"
+        assert self.total_viewer <= self.max_viewer, "Maximum"
         # Execute
         minted_asset = self._mint_pov(Txn.sender)
         # self.total_viewer = self.total_viewer + 1
@@ -62,19 +63,24 @@ class AmaProof(ARC4Contract):
     @abimethod
     def get_pov_id(self) -> UInt64:
         # get -> op.Box.get(sender) -> asset.id
-        pass
-        return UInt64(0)
+        minted_asset_id, is_exists = algopy.op.Box.get(Txn.sender.bytes)
+        assert is_exists, "You did not participate"
+
+        return algopy.op.btoi(minted_asset_id)
 
     @abimethod
     def claim_pov_token(self) -> None:
         # tao NFT -> AssetConfig -> asset - Reward.
         # winner == Txn.sender -> NFT
         # require
-        pass
+        assert self.winner == Txn.sender, "You are not winner, cannot claim"
+        assert self.pov_id == UInt64(0), "NFT already claimed"
+
+        self.pov_id = self.get_pov_id()
 
     @abimethod
     def send_pov_token(self) -> None:
-        # itxn.AssetTransfer(
-        # asset_id, from, to, amount
-        # )
-        pass
+        assert self.pov_id != UInt64(0), "NFT has not been claimed yet"
+        assert self.winner != Account(), "Winner's address is not set"
+
+        itxn.AssetTransfer(xfer_asset=self.pov_id, asset_receiver=self.winner, asset_amount=UInt64(1)).submit()
