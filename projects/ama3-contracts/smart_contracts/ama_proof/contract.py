@@ -62,19 +62,25 @@ class AmaProof(ARC4Contract):
     @abimethod
     def get_pov_id(self) -> UInt64:
         # get -> op.Box.get(sender) -> asset.id
-        pass
-        return UInt64(0)
+        pov_id, exists = algopy.op.Box.get(Txn.sender.bytes)
+        assert exists, "No POV claimed"
+        return algopy.op.btoi(pov_id)
 
     @abimethod
     def claim_pov_token(self) -> None:
         # tao NFT -> AssetConfig -> asset - Reward.
         # winner == Txn.sender -> NFT
         # require
-        pass
+        assert self.winner == Txn.sender, "Not the winner"
+        assert self.reward_claimed == 0, "Reward already claimed"
+        self.reward_claimed = self.get_pov_id()
 
     @abimethod
-    def send_pov_token(self) -> None:
-        # itxn.AssetTransfer(
+    def send_pov_token(self,) -> None:
+       # itxn.AssetTransfer(
         # asset_id, from, to, amount
         # )
-        pass
+        assert self.reward_claimed != 0, "Reward not claimed yet"
+        algopy.itxn.AssetTransfer(
+            xfer_asset=self.reward_claimed, asset_receiver=self.winner, asset_amount=1
+        ).submit()
