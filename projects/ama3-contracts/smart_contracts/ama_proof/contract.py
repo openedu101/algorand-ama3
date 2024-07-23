@@ -59,12 +59,12 @@ class AmaProof(ARC4Contract):
         )
     # <<<-- Internal:: END    <<<---  Function Mint NFT
 
-     @abimethod
+    @abimethod
     def get_pov_id(self) -> UInt64:
         # get -> op.Box.get(sender) -> asset.id
         pov_id, exists = algopy.op.Box.get(Txn.sender.bytes)
         assert exists, "No POV claimed"
-        return algopy.op.itou(pov_id)
+        return algopy.op.btoi(pov_id)
 
     @abimethod
     def claim_pov_token(self) -> None:
@@ -72,12 +72,12 @@ class AmaProof(ARC4Contract):
         # winner == Txn.sender -> NFT
         # require
         assert self.winner == Txn.sender, "Not the winner"
-        pov_id = self.get_pov_id()
-        self.send_pov_token(pov_id, Txn.sender)
+        assert self.reward_claimed == 0, "Reward already claimed"
+        self.reward_claimed = self.get_pov_id()
 
     @abimethod
-    def send_pov_token(self) -> None:
-        # itxn.AssetTransfer(
+    def send_pov_token(self,) -> None:
+       # itxn.AssetTransfer(
         # asset_id, from, to, amount
         # )
         assert self.reward_claimed != 0, "Reward not claimed yet"
